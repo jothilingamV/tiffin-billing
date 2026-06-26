@@ -1,0 +1,1022 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Thirupathur Tiffin Counter — Billing</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --leaf:#1F2B1A;
+  --leaf-dark:#141C10;
+  --cream:#F6EFE2;
+  --cream-dim:#EDE3CC;
+  --coffee:#7A4324;
+  --coffee-dark:#5C3119;
+  --brass:#C9A227;
+  --brass-light:#E2C158;
+  --chutney:#8B2F1F;
+  --chutney-dark:#6E2317;
+  --ink:#221A12;
+  --line:#D8CBAA;
+  --shadow: 0 8px 24px rgba(20,28,16,0.18);
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  font-family:'Inter',sans-serif;
+  background:var(--leaf);
+  background-image:
+    radial-gradient(circle at 10% 0%, rgba(201,162,39,0.08), transparent 40%),
+    radial-gradient(circle at 90% 100%, rgba(201,162,39,0.06), transparent 40%);
+  color:var(--ink);
+  min-height:100vh;
+}
+h1,h2,h3,.display{font-family:'Poppins',sans-serif;}
+
+/* ---------- TOP BAR ---------- */
+.topbar{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:18px 28px;
+  background:var(--leaf-dark);
+  border-bottom:3px solid var(--brass);
+  position:sticky;top:0;z-index:50;
+}
+.brand{display:flex;align-items:center;gap:12px;}
+.brand .leaf-icon{
+  width:38px;height:38px;border-radius:50%;
+  background:linear-gradient(145deg,var(--brass-light),var(--brass));
+  display:flex;align-items:center;justify-content:center;
+  font-size:18px;box-shadow:var(--shadow);
+}
+.brand h1{color:var(--cream);font-size:20px;margin:0;letter-spacing:.2px;}
+.brand p{color:var(--brass-light);font-size:11px;margin:0;letter-spacing:1.5px;text-transform:uppercase;font-weight:600;}
+.topbar-actions{display:flex;gap:10px;}
+.btn{
+  font-family:'Inter',sans-serif;font-weight:600;font-size:13.5px;
+  border:none;border-radius:10px;padding:10px 16px;cursor:pointer;
+  display:inline-flex;align-items:center;gap:7px;
+  transition:transform .12s ease, box-shadow .12s ease, opacity .12s ease;
+  -webkit-tap-highlight-color:transparent;
+  touch-action:manipulation;
+}
+.btn:active{transform:scale(0.96);}
+.btn-brass{background:var(--brass);color:var(--leaf-dark);}
+.btn-outline{background:transparent;color:var(--cream);border:1.5px solid rgba(246,239,226,0.35);}
+.btn-chutney{background:var(--chutney);color:var(--cream);}
+.btn-coffee{background:var(--coffee);color:var(--cream);}
+.btn-ghost{background:rgba(255,255,255,0.06);color:var(--cream);}
+.btn:disabled{opacity:.4;cursor:not-allowed;}
+.btn-sm{padding:7px 11px;font-size:12.5px;border-radius:8px;}
+.btn-full{width:100%;justify-content:center;}
+
+/* Hover effects only on devices that actually support hover (mouse/trackpad).
+   On iOS/touch, :hover without this guard requires a "dead" first tap before
+   the real click registers — this is the fix for buttons needing two taps. */
+@media (hover:hover) and (pointer:fine){
+  .btn-brass:hover{background:var(--brass-light);}
+  .btn-outline:hover{border-color:var(--brass);color:var(--brass-light);}
+  .btn-chutney:hover{background:var(--chutney-dark);}
+  .btn-coffee:hover{background:var(--coffee-dark);}
+  .btn-ghost:hover{background:rgba(255,255,255,0.12);}
+}
+
+
+/* ---------- LAYOUT ---------- */
+.layout{
+  display:grid;grid-template-columns:1fr 380px;gap:22px;
+  padding:24px 28px 60px;max-width:1400px;margin:0 auto;
+  align-items:start;
+}
+
+/* ---------- MOBILE BILL BAR (floating button) ---------- */
+.mobile-bill-bar{display:none;}
+
+@media (max-width:980px){
+  .layout{grid-template-columns:1fr;padding:16px 14px 90px;}
+  .topbar{padding:14px 16px;}
+  .brand h1{font-size:16.5px;}
+  .brand p{font-size:9.5px;}
+  .topbar-actions{gap:6px;}
+  .topbar-actions .btn{padding:8px 10px;font-size:12px;}
+  .topbar-actions .btn span.full-label{display:none;}
+
+  /* Bill panel becomes a slide-up drawer on mobile */
+  .bill-panel{
+    position:fixed;left:0;right:0;bottom:0;top:auto;
+    max-height:85vh;
+    max-height:85dvh;
+    border-radius:20px 20px 0 0;
+    transform:translateY(calc(100% - 64px));
+    transition:transform .3s ease;
+    z-index:120;
+    box-shadow:0 -10px 40px rgba(0,0,0,0.4);
+  }
+  .bill-panel.expanded{transform:translateY(0);}
+  .bill-head{cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation;}
+  .bill-drag-handle{
+    display:block;
+    width:42px;height:5px;border-radius:3px;background:rgba(246,239,226,0.4);
+    margin:0 auto 8px;
+  }
+  .bill-body{max-height:38vh;}
+
+  /* Floating bottom bar shown when drawer is collapsed */
+  .mobile-bill-bar{
+    display:flex;position:fixed;left:14px;right:14px;bottom:14px;
+    background:var(--leaf-dark);color:var(--cream);
+    border-radius:14px;padding:13px 18px;
+    align-items:center;justify-content:space-between;
+    box-shadow:0 10px 30px rgba(0,0,0,0.4);
+    z-index:110;border:1.5px solid var(--brass);
+    cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation;
+  }
+  .mobile-bill-bar.hidden{display:none;}
+  .mobile-bill-bar .mb-left{display:flex;align-items:center;gap:9px;font-size:13.5px;font-weight:600;}
+  .mobile-bill-bar .mb-count{
+    background:var(--brass);color:var(--leaf-dark);font-size:11.5px;font-weight:700;
+    width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  }
+  .mobile-bill-bar .mb-amt{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:15px;color:var(--brass-light);}
+
+  .menu-grid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;}
+  .item-photo{height:92px;}
+
+  .modal{max-height:92vh;max-height:92dvh;border-radius:16px 16px 0 0;align-self:flex-end;}
+  .modal-overlay{align-items:flex-end;padding:0;}
+  .form-row2{grid-template-columns:1fr;}
+  .rep-summary{grid-template-columns:1fr 1fr;}
+  .foot-row{flex-wrap:wrap;}
+}
+
+@media (max-width:480px){
+  .menu-grid{grid-template-columns:repeat(2,1fr);}
+  .topbar-actions .btn-sm{padding:7px 9px;font-size:11.5px;}
+}
+
+/* ---------- MENU GRID ---------- */
+.section-title{color:var(--cream);font-size:15px;margin:4px 0 14px;display:flex;align-items:center;gap:10px;}
+.section-title .tag{
+  background:var(--brass);color:var(--leaf-dark);font-size:10.5px;font-weight:700;
+  padding:3px 9px;border-radius:20px;letter-spacing:.5px;text-transform:uppercase;
+}
+.menu-grid{
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(168px,1fr));
+  gap:16px;
+}
+.item-card{
+  background:var(--cream);border-radius:16px;overflow:hidden;cursor:pointer;
+  box-shadow:var(--shadow);border:2px solid transparent;
+  transition:transform .15s ease, border-color .15s ease;
+  position:relative;
+  -webkit-tap-highlight-color:transparent;
+  touch-action:manipulation;
+}
+.item-card:active{transform:translateY(-1px) scale(0.98);}
+.item-card.flash{animation:flash .45s ease;}
+@keyframes flash{0%{box-shadow:0 0 0 0 rgba(201,162,39,0.7);}100%{box-shadow:0 0 0 14px rgba(201,162,39,0);}}
+.item-photo{width:100%;height:108px;object-fit:cover;display:block;background:var(--cream-dim);}
+.item-info{padding:10px 12px 12px;}
+.item-info .name{font-weight:700;font-size:14.5px;color:var(--ink);margin:0 0 2px;line-height:1.25;}
+.item-info .price{font-family:'JetBrains Mono',monospace;color:var(--coffee-dark);font-weight:600;font-size:13.5px;}
+.item-info .out{color:var(--chutney);font-size:11px;font-weight:700;text-transform:uppercase;}
+.item-card.unavailable{opacity:.5;cursor:not-allowed;}
+.add-badge{
+  position:absolute;top:8px;right:8px;background:var(--leaf-dark);color:var(--brass-light);
+  font-size:16px;width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  box-shadow:0 2px 6px rgba(0,0,0,.3);
+}
+
+/* ---------- BILL / RECEIPT PANEL ---------- */
+.bill-panel{
+  position:sticky;top:96px;
+  background:var(--cream);
+  border-radius:14px;
+  box-shadow:0 14px 36px rgba(0,0,0,0.3);
+  display:flex;flex-direction:column;
+  max-height:calc(100vh - 120px);
+  max-height:calc(100dvh - 120px); /* iOS Safari: dvh accounts for the address bar, vh does not */
+  overflow:hidden;
+}
+.bill-drag-handle{display:none;}
+.perforation{
+  height:14px;background:
+    radial-gradient(circle 7px at 0 0, transparent 7px, var(--coffee) 7.5px) ,
+    repeating-radial-gradient(circle 7px at 0 0, var(--cream) 0 7px, transparent 7px 100%);
+  background-size: 18px 14px;
+  background-color:var(--coffee);
+  margin-top:0;
+}
+.bill-body{
+  padding:14px 20px;overflow-y:auto;flex:1;min-height:120px;
+}
+.cart-empty{
+  text-align:center;color:#9a8b6c;font-size:13px;padding:36px 10px;
+}
+.cart-row{
+  display:flex;align-items:center;gap:8px;padding:9px 0;
+  border-bottom:1px dashed var(--line);
+}
+.cart-row:last-child{border-bottom:none;}
+.cart-row .ci-name{flex:1;font-size:13.5px;font-weight:600;color:var(--ink);}
+.cart-row .ci-name small{display:block;font-weight:400;color:#8a7a58;font-size:11px;font-family:'JetBrains Mono',monospace;}
+.qty-control{display:flex;align-items:center;gap:6px;}
+.qty-btn{
+  width:22px;height:22px;border-radius:6px;border:1px solid var(--line);background:#fff;
+  cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;color:var(--coffee-dark);font-weight:700;
+  -webkit-tap-highlight-color:transparent;touch-action:manipulation;
+}
+.qty-val{width:20px;text-align:center;font-family:'JetBrains Mono',monospace;font-weight:600;font-size:13px;}
+.ci-amt{width:62px;text-align:right;font-family:'JetBrains Mono',monospace;font-weight:600;font-size:13.5px;}
+.ci-remove{background:none;border:none;color:var(--chutney);cursor:pointer;font-size:15px;padding:0 2px;opacity:.6;-webkit-tap-highlight-color:transparent;touch-action:manipulation;}
+
+.bill-totals{
+  padding:12px 20px 4px;border-top:1px dashed var(--line);font-family:'JetBrains Mono',monospace;font-size:13px;
+}
+.tot-row{display:flex;justify-content:space-between;padding:3px 0;color:#5a4d33;}
+.tot-row.grand{
+  font-size:18px;font-weight:700;color:var(--leaf-dark);
+  border-top:2px solid var(--ink);margin-top:6px;padding-top:8px;
+}
+.bill-foot{padding:16px 20px 20px;display:flex;flex-direction:column;gap:9px;}
+.foot-row{display:flex;gap:9px;}
+.foot-row .btn{flex:1;}
+.thanks{
+  text-align:center;font-size:11px;color:#9a8b6c;letter-spacing:1px;text-transform:uppercase;margin-top:4px;
+}
+
+/* ---------- MODALS ---------- */
+.modal-overlay{
+  position:fixed;inset:0;background:rgba(20,28,16,0.6);backdrop-filter:blur(3px);
+  display:none;align-items:center;justify-content:center;z-index:200;padding:20px;
+}
+.modal-overlay.open{display:flex;}
+.modal{
+  background:var(--cream);border-radius:16px;max-width:560px;width:100%;
+  max-height:88vh;max-height:88dvh;overflow-y:auto;box-shadow:0 30px 60px rgba(0,0,0,0.4);
+}
+.modal-head{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:18px 22px;border-bottom:2px solid var(--line);position:sticky;top:0;background:var(--cream);
+}
+.modal-head h3{margin:0;color:var(--leaf-dark);font-size:17px;}
+.modal-close{background:none;border:none;font-size:22px;cursor:pointer;color:#8a7a58;line-height:1;}
+.modal-body{padding:20px 22px;}
+
+/* QR Modal */
+.qr-box{display:flex;flex-direction:column;align-items:center;gap:14px;text-align:center;}
+.qr-amt{font-family:'JetBrains Mono',monospace;font-size:28px;font-weight:700;color:var(--leaf-dark);}
+.qr-img-wrap{background:#fff;padding:14px;border-radius:12px;box-shadow:var(--shadow);}
+.upi-id{font-family:'JetBrains Mono',monospace;font-size:13px;color:#5a4d33;background:var(--cream-dim);padding:6px 12px;border-radius:8px;}
+
+/* Manage menu */
+.mm-list{display:flex;flex-direction:column;gap:10px;margin-bottom:18px;}
+.mm-row{
+  display:flex;align-items:center;gap:10px;padding:9px;border:1px solid var(--line);border-radius:10px;background:#fff;
+}
+.mm-row img{width:46px;height:46px;border-radius:8px;object-fit:cover;flex-shrink:0;background:var(--cream-dim);}
+.mm-row .mm-info{flex:1;min-width:0;}
+.mm-row .mm-info .n{font-weight:700;font-size:13.5px;}
+.mm-row .mm-info .p{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--coffee-dark);}
+.mm-actions{display:flex;gap:6px;}
+.icon-btn{
+  width:30px;height:30px;border-radius:8px;border:none;cursor:pointer;font-size:14px;
+  display:flex;align-items:center;justify-content:center;
+  -webkit-tap-highlight-color:transparent;touch-action:manipulation;
+}
+.icon-btn.edit{background:var(--cream-dim);color:var(--coffee-dark);}
+.icon-btn.del{background:#f4dcd6;color:var(--chutney);}
+.icon-btn.toggle{background:var(--cream-dim);font-size:11px;font-weight:700;width:auto;padding:0 8px;}
+@media (hover:hover) and (pointer:fine){
+  .icon-btn.edit:hover{background:var(--brass-light);}
+  .icon-btn.del:hover{background:var(--chutney);color:#fff;}
+}
+
+.form-grid{display:grid;gap:12px;}
+.form-grid label{font-size:12px;font-weight:700;color:var(--coffee-dark);text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:4px;}
+.form-grid input{
+  width:100%;padding:9px 11px;border:1.5px solid var(--line);border-radius:8px;font-family:'Inter',sans-serif;
+  font-size:14px;background:#fff;
+  -webkit-appearance:none;appearance:none; /* fixes iOS Safari inconsistent month/date input rendering */
+}
+.form-grid input:focus{outline:none;border-color:var(--brass);}
+.form-grid input[type="month"]{min-height:38px;} /* iOS ignores width:100% on temporal inputs without an explicit height */
+.form-row2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.hint{font-size:11px;color:#9a8b6c;margin-top:3px;}
+.img-preview-wrap{
+  margin-top:9px;display:flex;align-items:center;gap:10px;
+  background:#fff;border:1.5px dashed var(--line);border-radius:10px;padding:8px 10px;
+}
+.img-preview-wrap img{
+  width:54px;height:54px;border-radius:8px;object-fit:cover;background:var(--cream-dim);flex-shrink:0;
+}
+.img-preview-wrap span{font-size:11.5px;font-weight:600;}
+.img-preview-wrap span.ok{color:#3a6b2f;}
+.img-preview-wrap span.bad{color:var(--chutney);}
+.img-preview-wrap span.loading{color:#9a8b6c;}
+
+/* Reports */
+.report-tabs{display:flex;gap:8px;margin-bottom:16px;}
+.rep-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:18px;}
+.rep-card{background:#fff;border:1.5px solid var(--line);border-radius:12px;padding:14px;text-align:center;}
+.rep-card .v{font-family:'JetBrains Mono',monospace;font-size:20px;font-weight:700;color:var(--leaf-dark);}
+.rep-card .l{font-size:11px;color:#8a7a58;text-transform:uppercase;letter-spacing:.5px;margin-top:3px;}
+table.rep-table{width:100%;border-collapse:collapse;font-size:13px;}
+table.rep-table th{
+  text-align:left;font-size:11px;text-transform:uppercase;color:#8a7a58;letter-spacing:.4px;
+  border-bottom:2px solid var(--ink);padding:6px 6px;
+}
+table.rep-table td{padding:7px 6px;border-bottom:1px dashed var(--line);font-family:'JetBrains Mono',monospace;}
+.empty-state{text-align:center;color:#9a8b6c;padding:30px;font-size:13px;}
+
+.toast{
+  position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);
+  background:var(--leaf-dark);color:var(--cream);padding:11px 20px;border-radius:30px;
+  font-size:13.5px;font-weight:600;box-shadow:0 10px 30px rgba(0,0,0,0.4);
+  opacity:0;pointer-events:none;transition:all .25s ease;z-index:300;
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+/* Print styles */
+@media print{
+  body *{visibility:hidden;}
+  #printArea, #printArea *{visibility:visible;}
+  #printArea{position:absolute;top:0;left:0;width:300px;padding:10px;font-family:'JetBrains Mono',monospace;}
+}
+#printArea{display:none;}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">
+    <div class="leaf-icon">🍃</div>
+    <div>
+      <h1>Thirupathur Tiffin Counter</h1>
+      <p>Billing &amp; Menu</p>
+    </div>
+  </div>
+  <div class="topbar-actions">
+    <button class="btn btn-outline btn-sm" id="openReportsBtn">📊 Sales Report</button>
+    <button class="btn btn-brass btn-sm" id="openManageBtn">🛠️ Manage Menu</button>
+  </div>
+</div>
+
+<div class="layout">
+  <div>
+    <div class="section-title">Today's Menu <span class="tag" id="itemCountTag">0 items</span></div>
+    <div class="menu-grid" id="menuGrid"></div>
+  </div>
+
+  <div class="bill-panel" id="billPanel">
+    <div class="bill-head" id="billHead">
+      <div class="bill-drag-handle"></div>
+      <h2>🧾 Current Bill</h2>
+      <div class="meta" id="billMeta">Bill — • <span id="billTime"></span></div>
+    </div>
+    <div class="perforation"></div>
+    <div class="bill-body" id="cartBody">
+      <div class="cart-empty">No items yet.<br>Tap a menu item to add it here.</div>
+    </div>
+    <div class="bill-totals">
+      <div class="tot-row"><span>Items</span><span id="totItems">0</span></div>
+      <div class="tot-row grand"><span>Total</span><span id="totAmt">₹0</span></div>
+    </div>
+    <div class="bill-foot">
+      <div class="foot-row">
+        <button class="btn btn-brass" id="payNowBtn">💳 Pay Now</button>
+        <button class="btn btn-coffee" id="printBtn">🖨️ Print Bill</button>
+      </div>
+      <button class="btn btn-chutney btn-full" id="clearCartBtn">✕ Clear Cart</button>
+      <div class="thanks">Nandri · Varuga Again</div>
+    </div>
+  </div>
+</div>
+
+<div class="mobile-bill-bar hidden" id="mobileBillBar">
+  <div class="mb-left">
+    <span class="mb-count" id="mbCount">0</span>
+    <span>View Bill</span>
+  </div>
+  <div class="mb-amt" id="mbAmt">₹0</div>
+</div>
+
+<!-- QR / Pay Modal -->
+<div class="modal-overlay" id="qrOverlay">
+  <div class="modal">
+    <div class="modal-head"><h3>Scan to Pay</h3><button class="modal-close" data-close="qrOverlay">×</button></div>
+    <div class="modal-body">
+      <div class="qr-box">
+        <div class="qr-amt" id="qrAmount">₹0</div>
+        <div class="qr-img-wrap"><div id="qrCodeCanvas"></div></div>
+        <div class="upi-id" id="upiIdDisplay">shop@upi</div>
+        <button class="btn btn-brass btn-full" id="confirmPaidBtn">✅ Mark as Paid &amp; Save Sale</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Manage Menu Modal -->
+<div class="modal-overlay" id="manageOverlay">
+  <div class="modal">
+    <div class="modal-head"><h3>🛠️ Manage Menu</h3><button class="modal-close" data-close="manageOverlay">×</button></div>
+    <div class="modal-body">
+      <div class="mm-list" id="mmList"></div>
+      <h3 style="font-size:14px;color:var(--coffee-dark);margin:0 0 10px;" id="formTitle">Add New Item</h3>
+      <div class="form-grid">
+        <input type="hidden" id="editId">
+        <div>
+          <label>Item Name</label>
+          <input type="text" id="fName" placeholder="e.g. Idly">
+        </div>
+        <div class="form-row2">
+          <div>
+            <label>Price (₹)</label>
+            <input type="number" id="fPrice" placeholder="40" min="0" step="1">
+          </div>
+          <div>
+            <label>Category</label>
+            <input type="text" id="fCategory" placeholder="Tiffin / Beverage">
+          </div>
+        </div>
+        <div>
+          <label>Image URL</label>
+          <input type="text" id="fImage" placeholder="Paste any image link — from Google, Unsplash, your own site, etc.">
+          <div class="hint" id="imgHint">Leave blank to auto-fetch a matching food photo.</div>
+          <div class="img-preview-wrap" id="imgPreviewWrap" style="display:none;">
+            <img id="imgPreview" alt="Preview">
+            <span id="imgPreviewStatus"></span>
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;margin-top:4px;">
+          <button class="btn btn-brass" id="saveItemBtn" style="flex:1;">💾 Save Item</button>
+          <button class="btn btn-ghost" id="cancelEditBtn" style="display:none;">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Reports Modal -->
+<div class="modal-overlay" id="reportsOverlay">
+  <div class="modal">
+    <div class="modal-head"><h3>📊 Monthly Sales Report</h3><button class="modal-close" data-close="reportsOverlay">×</button></div>
+    <div class="modal-body">
+      <div class="form-row2" style="margin-bottom:16px;">
+        <div>
+          <label>Month</label>
+          <input type="month" id="reportMonth">
+        </div>
+        <div style="display:flex;align-items:flex-end;">
+          <button class="btn btn-outline btn-full" id="exportCsvBtn" style="background:var(--cream-dim);color:var(--coffee-dark);">⬇️ Export CSV</button>
+        </div>
+      </div>
+      <div class="rep-summary">
+        <div class="rep-card"><div class="v" id="repTotalSales">₹0</div><div class="l">Total Sales</div></div>
+        <div class="rep-card"><div class="v" id="repBillCount">0</div><div class="l">Bills</div></div>
+        <div class="rep-card"><div class="v" id="repTopItem">—</div><div class="l">Top Item</div></div>
+      </div>
+      <h3 style="font-size:13px;color:var(--coffee-dark);">Item-wise breakdown</h3>
+      <div id="repTableWrap"><div class="empty-state">No sales recorded for this month yet.</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- Hidden print receipt -->
+<div id="printArea"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script>
+/* ============ DATA LAYER ============ */
+const DEFAULT_MENU = [
+  {id:'i1', name:'Idly', price:30, category:'Tiffin', img:'https://images.unsplash.com/photo-1589301760014-d929f3979dbc?w=400&q=80', available:true},
+  {id:'i2', name:'Puttu', price:35, category:'Tiffin', img:'https://images.pexels.com/photos/17104944/pexels-photo-17104944.jpeg?w=400&h=400&fit=crop&auto=compress&cs=tinysrgb', available:true},
+  {id:'i3', name:'Poori', price:40, category:'Tiffin', img:'https://images.unsplash.com/photo-1601050690597-df0568f70950?w=400&q=80', available:true},
+  {id:'i4', name:'Dosa', price:45, category:'Tiffin', img:'https://images.unsplash.com/photo-1668236543090-82eba5ee5976?w=400&q=80', available:true},
+  {id:'i5', name:'Vada', price:25, category:'Tiffin', img:'https://images.unsplash.com/photo-1606491956689-2ea866880c84?w=400&q=80', available:true},
+  {id:'i6', name:'Pazhampori', price:20, category:'Snacks', img:'https://images.unsplash.com/photo-1604152135912-04a022e23696?w=400&q=80', available:true},
+  {id:'i7', name:'Coffee', price:20, category:'Beverage', img:'https://images.unsplash.com/photo-1610632380989-680fe40816c6?w=400&q=80', available:true},
+];
+
+const LS_MENU = 'tiffin_menu_v1';
+const LS_SALES = 'tiffin_sales_v1';
+const LS_BILLNO = 'tiffin_billno_v1';
+const UPI_ID = 'thirupathurtiffin@upi';
+
+/* Safe storage wrapper. Some environments block localStorage entirely
+   (iOS Safari Private Browsing, WhatsApp's in-app file viewer, certain
+   restricted file:// webviews) — accessing localStorage there throws a
+   SecurityError immediately, even before .getItem() runs. Without this
+   wrapper that error was uncaught, so the menu silently stayed empty.
+   This falls back to an in-memory store for the current session so the
+   app still works — it just won't persist between opens in that case. */
+const memoryStore = {};
+let storageBlocked = false;
+function safeGet(key){
+  try{ return localStorage.getItem(key); }
+  catch(e){ storageBlocked = true; return memoryStore[key] ?? null; }
+}
+function safeSet(key, value){
+  try{ localStorage.setItem(key, value); }
+  catch(e){ storageBlocked = true; memoryStore[key] = value; }
+}
+
+function loadMenu(){
+  const raw = safeGet(LS_MENU);
+  if(raw){
+    try{
+      const m = JSON.parse(raw);
+      patchBrokenImages(m);
+      return m;
+    }catch(e){}
+  }
+  saveMenu(DEFAULT_MENU);
+  return DEFAULT_MENU.slice();
+}
+// One-time fix: replaces known-broken default image links (e.g. old Puttu photo)
+// in menus already saved to a user's browser, without touching their other edits.
+function patchBrokenImages(m){
+  const FIXED_IMAGES = {
+    'https://images.unsplash.com/photo-1626132647523-66c0d3b87d6f?w=400&q=80':
+      'https://images.pexels.com/photos/17104944/pexels-photo-17104944.jpeg?w=400&h=400&fit=crop&auto=compress&cs=tinysrgb'
+  };
+  let changed = false;
+  m.forEach(item=>{
+    if(FIXED_IMAGES[item.img]){ item.img = FIXED_IMAGES[item.img]; changed = true; }
+  });
+  if(changed) saveMenu(m);
+}
+function saveMenu(m){ safeSet(LS_MENU, JSON.stringify(m)); }
+function loadSales(){
+  const raw = safeGet(LS_SALES);
+  if(raw){ try{ return JSON.parse(raw); }catch(e){} }
+  return [];
+}
+function saveSales(s){ safeSet(LS_SALES, JSON.stringify(s)); }
+function nextBillNo(){
+  let n = parseInt(safeGet(LS_BILLNO) || '0', 10) + 1;
+  safeSet(LS_BILLNO, n);
+  return n;
+}
+
+let menu = loadMenu();
+let cart = {}; // id -> qty
+let currentBillNo = nextBillNo();
+
+/* Locks background page scroll while a modal is open. Without this, iOS Safari
+   lets the body scroll underneath a fixed-position overlay, which is what makes
+   buttons feel like they need an extra tap (the first touch just scrolls/dismisses). */
+let _scrollLockY = 0;
+function lockBodyScroll(){
+  _scrollLockY = window.scrollY;
+  document.body.style.position = 'fixed';
+  document.body.style.top = `-${_scrollLockY}px`;
+  document.body.style.left = '0';
+  document.body.style.right = '0';
+  document.body.style.width = '100%';
+}
+function unlockBodyScroll(){
+  document.body.style.position = '';
+  document.body.style.top = '';
+  document.body.style.left = '';
+  document.body.style.right = '';
+  document.body.style.width = '';
+  window.scrollTo(0, _scrollLockY);
+}
+function openOverlay(el){
+  el.classList.add('open');
+  lockBodyScroll();
+}
+function closeOverlay(el){
+  el.classList.remove('open');
+  unlockBodyScroll();
+}
+
+/* ============ TOAST ============ */
+function toast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(()=>t.classList.remove('show'), 1800);
+}
+
+/* ============ MENU RENDER ============ */
+function renderMenu(){
+  const grid = document.getElementById('menuGrid');
+  grid.innerHTML = '';
+  document.getElementById('itemCountTag').textContent = menu.length + ' items';
+  menu.forEach(item=>{
+    const card = document.createElement('div');
+    card.className = 'item-card' + (item.available===false ? ' unavailable':'');
+    card.dataset.id = item.id;
+    card.innerHTML = `
+      <img class="item-photo" src="${item.img}" alt="${escapeHtml(item.name)}" loading="lazy">
+      <div class="item-info">
+        <p class="name">${escapeHtml(item.name)}</p>
+        ${item.available===false ? '<p class="out">Out of stock</p>' : `<p class="price">₹${item.price}</p>`}
+      </div>
+    `;
+    if(item.available!==false){
+      card.addEventListener('click', ()=> addToCart(item.id));
+    }
+    grid.appendChild(card);
+  });
+}
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+/* ============ CART ============ */
+function addToCart(id){
+  cart[id] = (cart[id]||0) + 1;
+  renderCart();
+  const card = document.querySelector(`.item-card[data-id="${id}"]`);
+  if(card){ card.classList.remove('flash'); requestAnimationFrame(()=>card.classList.add('flash')); }
+}
+function changeQty(id, delta){
+  if(!cart[id]) return;
+  cart[id] += delta;
+  if(cart[id] <= 0) delete cart[id];
+  renderCart();
+}
+function removeFromCart(id){ delete cart[id]; renderCart(); }
+function clearCart(silent){
+  cart = {};
+  currentBillNo = nextBillNo();
+  renderCart();
+  if(!silent) toast('Cart cleared');
+}
+function getCartTotal(){
+  let total=0, count=0;
+  Object.entries(cart).forEach(([id,qty])=>{
+    const item = menu.find(m=>m.id===id);
+    if(item){ total += item.price*qty; count += qty; }
+  });
+  return {total,count};
+}
+function renderCart(){
+  const body = document.getElementById('cartBody');
+  const entries = Object.entries(cart);
+  if(entries.length===0){
+    body.innerHTML = '<div class="cart-empty">No items yet.<br>Tap a menu item to add it here.</div>';
+  } else {
+    body.innerHTML = entries.map(([id,qty])=>{
+      const item = menu.find(m=>m.id===id);
+      if(!item) return '';
+      const amt = item.price*qty;
+      return `
+        <div class="cart-row" data-id="${id}">
+          <div class="ci-name">${escapeHtml(item.name)}<small>₹${item.price} each</small></div>
+          <div class="qty-control">
+            <button class="qty-btn" data-act="dec">−</button>
+            <span class="qty-val">${qty}</span>
+            <button class="qty-btn" data-act="inc">+</button>
+          </div>
+          <div class="ci-amt">₹${amt}</div>
+          <button class="ci-remove" data-act="rm" title="Remove">🗑</button>
+        </div>`;
+    }).join('');
+  }
+  const {total,count} = getCartTotal();
+  document.getElementById('totItems').textContent = count;
+  document.getElementById('totAmt').textContent = '₹'+total;
+  document.getElementById('billMeta').innerHTML = `Bill #${String(currentBillNo).padStart(4,'0')} • <span id="billTime"></span>`;
+  document.getElementById('billTime').textContent = new Date().toLocaleString('en-IN', {dateStyle:'medium', timeStyle:'short'});
+  const hasItems = count>0;
+  document.getElementById('payNowBtn').disabled = !hasItems;
+  document.getElementById('printBtn').disabled = !hasItems;
+
+  // mobile floating bar sync
+  const mbCount = document.getElementById('mbCount');
+  const mbAmt = document.getElementById('mbAmt');
+  const mobileBar = document.getElementById('mobileBillBar');
+  const billPanel = document.getElementById('billPanel');
+  if(mbCount && mbAmt && mobileBar && billPanel){
+    mbCount.textContent = count;
+    mbAmt.textContent = '₹'+total;
+    const isMobile = window.matchMedia('(max-width:980px)').matches;
+    if(isMobile){
+      if(hasItems && !billPanel.classList.contains('expanded')){
+        mobileBar.classList.remove('hidden');
+      } else if(!hasItems){
+        mobileBar.classList.add('hidden');
+        billPanel.classList.remove('expanded');
+      } else {
+        mobileBar.classList.add('hidden');
+      }
+    }
+  }
+}
+function toggleBillDrawer(forceState){
+  const billPanel = document.getElementById('billPanel');
+  const mobileBar = document.getElementById('mobileBillBar');
+  const isMobile = window.matchMedia('(max-width:980px)').matches;
+  if(!isMobile) return;
+  const expand = typeof forceState==='boolean' ? forceState : !billPanel.classList.contains('expanded');
+  billPanel.classList.toggle('expanded', expand);
+  mobileBar.classList.toggle('hidden', expand || Object.keys(cart).length===0);
+}
+document.getElementById('billHead').addEventListener('click', ()=> toggleBillDrawer());
+document.getElementById('mobileBillBar').addEventListener('click', ()=> toggleBillDrawer(true));
+
+document.getElementById('cartBody').addEventListener('click', (e)=>{
+  const row = e.target.closest('.cart-row');
+  if(!row) return;
+  const id = row.dataset.id;
+  const act = e.target.dataset.act;
+  if(act==='inc') changeQty(id, 1);
+  else if(act==='dec') changeQty(id, -1);
+  else if(act==='rm') removeFromCart(id);
+});
+document.getElementById('clearCartBtn').addEventListener('click', ()=>{
+  if(Object.keys(cart).length===0){ toast('Cart is already empty'); return; }
+  if(confirm('Clear the current bill?')) clearCart();
+});
+
+/* ============ SALE RECORDING ============ */
+function recordSale(){
+  const {total,count} = getCartTotal();
+  if(count===0) return null;
+  const items = Object.entries(cart).map(([id,qty])=>{
+    const item = menu.find(m=>m.id===id);
+    return {id, name:item?item.name:id, price:item?item.price:0, qty};
+  });
+  const sale = {
+    billNo: currentBillNo,
+    date: new Date().toISOString(),
+    items,
+    total
+  };
+  const sales = loadSales();
+  sales.push(sale);
+  saveSales(sales);
+  return sale;
+}
+
+/* ============ PAY NOW / QR ============ */
+const qrOverlay = document.getElementById('qrOverlay');
+document.getElementById('payNowBtn').addEventListener('click', ()=>{
+  const {total} = getCartTotal();
+  if(total<=0) return;
+  document.getElementById('qrAmount').textContent = '₹'+total;
+  document.getElementById('upiIdDisplay').textContent = UPI_ID;
+  const qrHolder = document.getElementById('qrCodeCanvas');
+  qrHolder.innerHTML = '';
+  const upiUrl = `upi://pay?pa=${encodeURIComponent(UPI_ID)}&pn=${encodeURIComponent('Thirupathur Tiffin Counter')}&am=${total}&cu=INR&tn=${encodeURIComponent('Bill #'+currentBillNo)}`;
+  if(window.QRCode){
+    new QRCode(qrHolder, {text: upiUrl, width:180, height:180, colorDark:'#221A12', colorLight:'#ffffff'});
+  } else {
+    qrHolder.innerHTML = `<div style="width:180px;height:180px;display:flex;align-items:center;justify-content:center;font-size:12px;color:#888;">QR unavailable offline</div>`;
+  }
+  openOverlay(qrOverlay);
+});
+document.getElementById('confirmPaidBtn').addEventListener('click', ()=>{
+  const sale = recordSale();
+  closeOverlay(qrOverlay);
+  if(sale){
+    toast(`Payment recorded — Bill #${sale.billNo} · ₹${sale.total}`);
+    clearCart(true);
+  }
+});
+
+/* ============ PRINT ============ */
+document.getElementById('printBtn').addEventListener('click', ()=>{
+  const {total,count} = getCartTotal();
+  if(count===0) return;
+  const sale = recordSale(); // also saves to sales history for reports
+  const entries = Object.entries(cart);
+  const lines = entries.map(([id,qty])=>{
+    const item = menu.find(m=>m.id===id);
+    const name = item?item.name:id;
+    const price = item?item.price:0;
+    const amt = price*qty;
+    return `${name.padEnd(16,' ')}${String(qty).padStart(2,' ')} x ${String(price).padStart(3,' ')} = ${String(amt).padStart(4,' ')}`;
+  }).join('\n');
+  const now = new Date().toLocaleString('en-IN', {dateStyle:'medium', timeStyle:'short'});
+  const printHtml = `
+    <div style="text-align:center;font-weight:bold;font-size:15px;">THIRUPATHUR TIFFIN COUNTER</div>
+    <div style="text-align:center;font-size:11px;">Thirupathur, Tamil Nadu</div>
+    <div style="text-align:center;font-size:11px;margin-bottom:8px;">------------------------------</div>
+    <div style="font-size:12px;">Bill No: #${String(currentBillNo).padStart(4,'0')}<br>Date: ${now}</div>
+    <div style="font-size:12px;margin:8px 0;">------------------------------</div>
+    <pre style="font-size:12px;margin:0;white-space:pre-wrap;">${lines}</pre>
+    <div style="font-size:12px;margin:8px 0;">------------------------------</div>
+    <div style="font-size:14px;font-weight:bold;">TOTAL: ₹${total} (${count} items)</div>
+    <div style="font-size:11px;text-align:center;margin-top:12px;">Nandri! Varuga Again 🙏</div>
+  `;
+  document.getElementById('printArea').innerHTML = printHtml;
+  window.print();
+  if(sale) toast(`Printed — Bill #${sale.billNo} saved to sales`);
+  clearCart(true);
+});
+
+/* ============ MANAGE MENU (CRUD) ============ */
+const manageOverlay = document.getElementById('manageOverlay');
+document.getElementById('openManageBtn').addEventListener('click', ()=>{
+  renderManageList();
+  openOverlay(manageOverlay);
+});
+function renderManageList(){
+  const list = document.getElementById('mmList');
+  list.innerHTML = menu.map(item=>`
+    <div class="mm-row" data-id="${item.id}">
+      <img src="${item.img}" alt="">
+      <div class="mm-info">
+        <div class="n">${escapeHtml(item.name)} <span style="color:#9a8b6c;font-weight:400;">· ${escapeHtml(item.category||'')}</span></div>
+        <div class="p">₹${item.price}</div>
+      </div>
+      <div class="mm-actions">
+        <button class="icon-btn toggle" data-act="toggle">${item.available===false?'Mark In Stock':'Mark Out'}</button>
+        <button class="icon-btn edit" data-act="edit" title="Edit">✏️</button>
+        <button class="icon-btn del" data-act="del" title="Delete">🗑</button>
+      </div>
+    </div>
+  `).join('') || '<div class="empty-state">No menu items yet. Add one below.</div>';
+}
+document.getElementById('mmList').addEventListener('click', (e)=>{
+  const row = e.target.closest('.mm-row');
+  if(!row) return;
+  const id = row.dataset.id;
+  const act = e.target.dataset.act;
+  const item = menu.find(m=>m.id===id);
+  if(!item) return;
+  if(act==='del'){
+    if(confirm(`Delete "${item.name}" from menu?`)){
+      menu = menu.filter(m=>m.id!==id);
+      saveMenu(menu);
+      renderManageList(); renderMenu();
+      toast('Item deleted');
+    }
+  } else if(act==='toggle'){
+    item.available = item.available===false ? true : false;
+    saveMenu(menu);
+    renderManageList(); renderMenu();
+  } else if(act==='edit'){
+    document.getElementById('editId').value = item.id;
+    document.getElementById('fName').value = item.name;
+    document.getElementById('fPrice').value = item.price;
+    document.getElementById('fCategory').value = item.category||'';
+    document.getElementById('fImage').value = item.img||'';
+    updateImgPreview(item.img||'');
+    document.getElementById('formTitle').textContent = 'Edit Item';
+    document.getElementById('cancelEditBtn').style.display = 'inline-flex';
+    document.getElementById('saveItemBtn').textContent = '💾 Update Item';
+  }
+});
+document.getElementById('cancelEditBtn').addEventListener('click', resetForm);
+function resetForm(){
+  document.getElementById('editId').value='';
+  document.getElementById('fName').value='';
+  document.getElementById('fPrice').value='';
+  document.getElementById('fCategory').value='';
+  document.getElementById('fImage').value='';
+  updateImgPreview('');
+  document.getElementById('formTitle').textContent='Add New Item';
+  document.getElementById('cancelEditBtn').style.display='none';
+  document.getElementById('saveItemBtn').textContent='💾 Save Item';
+}
+
+/* Live preview for "image from any website" — pasted URL, any domain */
+let imgPreviewTimer;
+function updateImgPreview(url){
+  const wrap = document.getElementById('imgPreviewWrap');
+  const img = document.getElementById('imgPreview');
+  const status = document.getElementById('imgPreviewStatus');
+  url = (url||'').trim();
+  if(!url){ wrap.style.display='none'; return; }
+  wrap.style.display='flex';
+  status.textContent = 'Loading preview…';
+  status.className = 'loading';
+  const testImg = new Image();
+  testImg.onload = ()=>{
+    img.src = url;
+    status.textContent = '✓ Image found';
+    status.className = 'ok';
+  };
+  testImg.onerror = ()=>{
+    img.src = '';
+    status.textContent = '✗ Could not load this link — check the URL or try a direct image link';
+    status.className = 'bad';
+  };
+  testImg.src = url;
+}
+document.getElementById('fImage').addEventListener('input', (e)=>{
+  clearTimeout(imgPreviewTimer);
+  imgPreviewTimer = setTimeout(()=> updateImgPreview(e.target.value), 400);
+});
+document.getElementById('fImage').addEventListener('paste', (e)=>{
+  setTimeout(()=> updateImgPreview(e.target.value), 50);
+});
+
+document.getElementById('saveItemBtn').addEventListener('click', ()=>{
+  const id = document.getElementById('editId').value;
+  const name = document.getElementById('fName').value.trim();
+  const price = parseFloat(document.getElementById('fPrice').value);
+  const category = document.getElementById('fCategory').value.trim() || 'Tiffin';
+  let img = document.getElementById('fImage').value.trim();
+  if(!name || isNaN(price) || price<0){
+    toast('Enter a valid name and price'); return;
+  }
+  if(!img){
+    img = `https://source.unsplash.com/400x300/?${encodeURIComponent(name+' indian food')}`;
+  }
+  if(id){
+    const item = menu.find(m=>m.id===id);
+    if(item){ item.name=name; item.price=price; item.category=category; item.img=img; }
+    toast('Item updated');
+  } else {
+    menu.push({id:'i'+Date.now(), name, price, category, img, available:true});
+    toast('Item added');
+  }
+  saveMenu(menu);
+  resetForm();
+  renderManageList();
+  renderMenu();
+});
+
+/* ============ REPORTS ============ */
+const reportsOverlay = document.getElementById('reportsOverlay');
+document.getElementById('openReportsBtn').addEventListener('click', ()=>{
+  const now = new Date();
+  const monthStr = now.toISOString().slice(0,7);
+  document.getElementById('reportMonth').value = monthStr;
+  renderReport(monthStr);
+  openOverlay(reportsOverlay);
+});
+document.getElementById('reportMonth').addEventListener('change', (e)=> renderReport(e.target.value));
+
+function renderReport(monthStr){
+  const sales = loadSales();
+  const filtered = sales.filter(s => s.date.slice(0,7) === monthStr);
+  let totalSales=0, billCount=filtered.length;
+  const itemTotals = {}; // name -> {qty, amount}
+  filtered.forEach(s=>{
+    totalSales += s.total;
+    s.items.forEach(it=>{
+      if(!itemTotals[it.name]) itemTotals[it.name] = {qty:0, amount:0};
+      itemTotals[it.name].qty += it.qty;
+      itemTotals[it.name].amount += it.qty*it.price;
+    });
+  });
+  document.getElementById('repTotalSales').textContent = '₹'+totalSales;
+  document.getElementById('repBillCount').textContent = billCount;
+  let topItem = '—';
+  let maxQty = 0;
+  Object.entries(itemTotals).forEach(([name,d])=>{ if(d.qty>maxQty){maxQty=d.qty; topItem=name;} });
+  document.getElementById('repTopItem').textContent = topItem;
+
+  const wrap = document.getElementById('repTableWrap');
+  const rows = Object.entries(itemTotals).sort((a,b)=>b[1].amount-a[1].amount);
+  if(rows.length===0){
+    wrap.innerHTML = '<div class="empty-state">No sales recorded for this month yet.</div>';
+  } else {
+    wrap.innerHTML = `
+      <table class="rep-table">
+        <thead><tr><th>Item</th><th>Qty Sold</th><th>Amount</th></tr></thead>
+        <tbody>
+          ${rows.map(([name,d])=>`<tr><td>${escapeHtml(name)}</td><td>${d.qty}</td><td>₹${d.amount}</td></tr>`).join('')}
+        </tbody>
+      </table>`;
+  }
+  reportsOverlay._currentRows = rows;
+  reportsOverlay._currentMonth = monthStr;
+  reportsOverlay._totalSales = totalSales;
+}
+document.getElementById('exportCsvBtn').addEventListener('click', ()=>{
+  const rows = reportsOverlay._currentRows || [];
+  const month = reportsOverlay._currentMonth || '';
+  if(rows.length===0){ toast('Nothing to export for this month'); return; }
+  let csv = 'Item,Qty Sold,Amount\n';
+  rows.forEach(([name,d])=>{ csv += `"${name}",${d.qty},${d.amount}\n`; });
+  csv += `\nTotal Sales,,${reportsOverlay._totalSales}\n`;
+  const blob = new Blob([csv], {type:'text/csv'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `sales_report_${month}.csv`;
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+  toast('CSV exported');
+});
+
+/* ============ MODAL CLOSE ============ */
+document.querySelectorAll('[data-close]').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    closeOverlay(document.getElementById(btn.dataset.close));
+    if(btn.dataset.close==='manageOverlay') resetForm();
+  });
+});
+document.querySelectorAll('.modal-overlay').forEach(ov=>{
+  ov.addEventListener('click', (e)=>{ if(e.target===ov){ closeOverlay(ov); if(ov.id==='manageOverlay') resetForm(); } });
+});
+
+/* ============ INIT ============ */
+renderMenu();
+renderCart();
+if(storageBlocked){
+  setTimeout(()=> toast('⚠️ Saved data unavailable here — open this file in Safari (not WhatsApp preview) to save menu & sales'), 1200);
+}
+</script>
+</body>
+</html>
